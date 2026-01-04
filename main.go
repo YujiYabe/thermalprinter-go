@@ -45,6 +45,11 @@ type LayoutItem struct {
 func main() {
 	loadEnvFile()
 	printerDevice = getEnv("PRINTER_DEVICE", defaultPrinterDevice)
+	port := getEnv("ECHO_PORT", "1323")
+	addr := port
+	if !strings.HasPrefix(addr, ":") {
+		addr = ":" + addr
+	}
 
 	e := echo.New()
 	e.Use(middleware.Logger())
@@ -56,7 +61,7 @@ func main() {
 
 	e.POST("/print", handlePrint)
 
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Fatal(e.Start(addr))
 }
 
 func handlePrint(c echo.Context) error {

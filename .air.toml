@@ -1,0 +1,19 @@
+# Air configuration for hot reload
+root = "."
+tmp_dir = "./tmp"
+
+[build]
+  cmd = "go run main.go"
+  bin = ""
+  full_bin = ""
+  include_ext = ["go"]
+  exclude_dir = ["vendor", "tmp", "bin"]
+  exclude_regex = ["_test.go"]
+  delay = 0
+
+[log]
+  level = "info"
+  color = true
+
+[misc]
+  clean_on_exit = true
