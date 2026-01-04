@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: Thermal Printer API
+  version: 1.0.0
+  description: REST API for printing via Echo and ESC/POS.
+servers:
+  - url: http://localhost:1323
+paths:
+  /print:
+    post:
+      summary: Print content to the thermal printer
+      description: >-
+        Prints text and/or QR codes. You can either send `layout` (recommended)
+        for fine-grained control, or use the legacy `title`/`body`/`url` fields.
+        If both are empty, the request is rejected.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrintRequest'
+            examples:
+              legacy:
+                summary: Legacy fields
+                value:
+                  title: CITIZEN 印刷テスト
+                  body: |-
+                    Go + Echo + REST Client でのテスト印字です。
+                    日本語の文字化けもチェックします。
+                  url: https://www.citizen-systems.co.jp/
+              layout:
+                summary: Layout-based receipt
+                value:
+                  layout:
+                    - type: text
+                      text: CITIZEN CT-S253
+                      align: center
+                      bold: true
+                      width: 2
+                      height: 2
+                    - type: text
+                      text: シンプルレシートのサンプル
+                    - type: qr
+                      qr: https://www.citizen-systems.co.jp/
+                    - type: feed
+                      feed: 2
+                    - type: cut
+      responses:
+        '200':
+          description: Print accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: printed
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: layout or title/body/url is required
+        '500':
+          description: Printer error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: open printer: open /dev/usb/lp0: no such file or directory
+
+components:
+  schemas:
+    PrintRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Legacy title string (centered, bold, double-size)
+        body:
+          type: string
+          description: Legacy body text (left aligned)
+        url:
+          type: string
+          description: Legacy QR target URL
+        layout:
+          type: array
+          description: Layout-based printing instructions
+          items:
+            $ref: '#/components/schemas/LayoutItem'
+      additionalProperties: false
+
+    LayoutItem:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Operation type
+          enum: [text, line, qr, feed, cut, space]
+        text:
+          type: string
+          description: Text content (used by text/line, or qr fallback)
+        align:
+          type: string
+          description: Alignment for text/line
+          enum: [left, center, right]
+        bold:
+          type: boolean
+        underline:
+          type: boolean
+        invert:
+          type: boolean
+        width:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 8
+          description: Font width scale (1-8)
+        height:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 8
+          description: Font height scale (1-8)
+        feed:
+          type: integer
+          description: Number of lines to feed (type=feed)
+          minimum: 1
+        qr:
+          type: string
+          description: QR payload (type=qr)
+        url:
+          type: string
+          description: Alternate QR payload key (type=qr)
+      required:
+        - type
+      additionalProperties: false
