@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"image"
+	"image/draw"
 	"net/http"
 	"os"
 
@@ -63,6 +65,7 @@ func printContent(req PrintRequest) error {
 	rw := bufio.NewReadWriter(bufio.NewReader(f), bufio.NewWriter(f))
 	p := escpos.New(rw)
 	p.Init()
+	setJapaneseMode(p)
 
 	if err := printTitle(p, req.Title); err != nil {
 		return err
@@ -130,12 +133,10 @@ func printQRCode(p *escpos.Escpos, value string) error {
 		return nil
 	}
 
-	qr, err := qrcode.New(value, qrcode.Medium)
+	img, err := buildQRCodeImage(value)
 	if err != nil {
-		return fmt.Errorf("generate QR: %w", err)
+		return err
 	}
-
-	img := qr.Image(256)
 	conv := raster.Converter{
 		MaxWidth:  576,
 		Threshold: 0.5,
@@ -146,6 +147,50 @@ func printQRCode(p *escpos.Escpos, value string) error {
 	p.Linefeed()
 
 	return nil
+}
+
+func buildQRCodeImage(value string) (image.Image, error) {
+	qr, err := qrcode.New(value, qrcode.Medium)
+	if err != nil {
+		return nil, fmt.Errorf("generate QR: %w", err)
+	}
+
+	qr.DisableBorder = true
+
+	const baseSize = 256
+	img := qr.Image(baseSize)
+
+	bitmap := qr.Bitmap()
+	if len(bitmap) == 0 {
+		return nil, fmt.Errorf("empty QR bitmap")
+	}
+
+	modulePx := baseSize / len(bitmap)
+	if modulePx < 1 {
+		modulePx = 1
+	}
+	quietPx := modulePx // add 1-module quiet zone
+
+	orig, ok := img.(*image.Paletted)
+	if !ok {
+		return nil, fmt.Errorf("unexpected QR image type %T", img)
+	}
+
+	outSize := baseSize + quietPx*2
+	out := image.NewPaletted(image.Rect(0, 0, outSize, outSize), orig.Palette)
+	draw.Draw(out, image.Rect(quietPx, quietPx, quietPx+baseSize, quietPx+baseSize), orig, image.Point{}, draw.Src)
+
+	return out, nil
+}
+
+func setJapaneseMode(p *escpos.Escpos) {
+	// Enable Kanji mode and set Shift-JIS code system on ESC/POS printers.
+	// FS & : Enable Kanji
+	p.WriteRaw([]byte{0x1c, 0x26})
+	// FS C n : Select Kanji code system (1 = Shift-JIS)
+	p.WriteRaw([]byte{0x1c, 0x43, 0x01})
+	// ESC R 8 : Select Japan international character set (paired with Kanji mode)
+	p.SetLang("ja")
 }
 
 func encodeShiftJIS(text string) (string, error) {
