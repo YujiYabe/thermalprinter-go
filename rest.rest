@@ -2,13 +2,85 @@
 @baseUrl = http://localhost:1323
 @contentType = application/json
 
-### 印刷リクエストのテスト
+### パターン1: シンプルレシート
 POST {{baseUrl}}/print
 Content-Type: {{contentType}}
 
 {
-    "title": "CITIZEN 印刷テスト",
-    "body": "Go + Echo + REST Client でのテスト印字です。\n日本語の文字化けもチェックします。",
-    "url": "https://www.citizen-systems.co.jp/"
+  "layout": [
+    { "type": "text", "text": "CITIZEN CT-S253", "align": "center", "bold": true, "width": 2, "height": 2 },
+    { "type": "text", "text": "シンプルレシートのサンプル" },
+    { "type": "text", "text": "日付: 2024-04-01" },
+    { "type": "text", "text": "担当: 山田" },
+    { "type": "feed", "feed": 1 },
+    { "type": "qr", "qr": "https://www.citizen-systems.co.jp/" },
+    { "type": "feed", "feed": 2 },
+    { "type": "cut" }
+  ]
 }
 
+### パターン2: メニュー形式
+POST {{baseUrl}}/print
+Content-Type: {{contentType}}
+
+{
+  "layout": [
+    { "type": "text", "text": "本日のおすすめ", "align": "center", "bold": true, "width": 2, "height": 2 },
+    { "type": "text", "text": "・焼き魚定食  850円" },
+    { "type": "text", "text": "・唐揚げ定食  800円" },
+    { "type": "text", "text": "・カレーライス 700円" },
+    { "type": "feed", "feed": 1 },
+    { "type": "text", "text": "※ご飯大盛り +100円", "underline": true },
+    { "type": "feed", "feed": 2 },
+    { "type": "qr", "qr": "https://example.com/menu" },
+    { "type": "cut" }
+  ]
+}
+
+### パターン3: チケット風（反転・下線）
+POST {{baseUrl}}/print
+Content-Type: {{contentType}}
+
+{
+  "layout": [
+    { "type": "text", "text": "入場券", "align": "center", "bold": true, "width": 2, "height": 2, "invert": true },
+    { "type": "text", "text": "イベント名: 春祭り2024" },
+    { "type": "text", "text": "日時: 2024/05/03 10:00" },
+    { "type": "text", "text": "会場: シティプラザ", "underline": true },
+    { "type": "feed", "feed": 1 },
+    { "type": "qr", "qr": "https://example.com/ticket/ABC123" },
+    { "type": "feed", "feed": 2 },
+    { "type": "cut" }
+  ]
+}
+
+### パターン4: 二段組み風（左右揃えの分け）
+POST {{baseUrl}}/print
+Content-Type: {{contentType}}
+
+{
+  "layout": [
+    { "type": "text", "text": "商品一覧", "align": "center", "bold": true, "width": 2, "height": 2 },
+    { "type": "text", "text": "Aセット", "align": "left", "bold": true },
+    { "type": "text", "text": "ドリンク付き", "align": "right" },
+    { "type": "text", "text": "Bセット", "align": "left", "bold": true },
+    { "type": "text", "text": "サラダ付き", "align": "right" },
+    { "type": "feed", "feed": 1 },
+    { "type": "qr", "qr": "https://example.com/order" },
+    { "type": "feed", "feed": 2 },
+    { "type": "cut" }
+  ]
+}
+
+### パターン5: フッターのみQR（既存との混在テスト）
+POST {{baseUrl}}/print
+Content-Type: {{contentType}}
+
+{
+  "layout": [
+    { "type": "text", "text": "Thank you!", "align": "center" },
+    { "type": "feed", "feed": 1 },
+    { "type": "qr", "qr": "https://example.com/thanks" },
+    { "type": "cut" }
+  ]
+}
