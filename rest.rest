@@ -1,0 +1,14 @@
+### 変数の定義（環境に合わせて変更）
+@baseUrl = http://localhost:1323
+@contentType = application/json
+
+### 印刷リクエストのテスト
+POST {{baseUrl}}/print
+Content-Type: {{contentType}}
+
+{
+    "title": "CITIZEN 印刷テスト",
+    "body": "Go + Echo + REST Client でのテスト印字です。\n日本語の文字化けもチェックします。",
+    "url": "https://www.citizen-systems.co.jp/"
+}
+
