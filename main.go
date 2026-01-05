@@ -420,14 +420,17 @@ func loadLogoImage() (image.Image, error) {
 	return invertImage(img), nil
 }
 
-func resizeLogo(src image.Image, maxSize int) image.Image {
-	if src == nil || maxSize <= 0 {
-		return src
+func resizeLogo(
+	imageImage image.Image,
+	maxSize int,
+) image.Image {
+	if imageImage == nil || maxSize <= 0 {
+		return imageImage
 	}
-	width := src.Bounds().Dx()
-	height := src.Bounds().Dy()
+	width := imageImage.Bounds().Dx()
+	height := imageImage.Bounds().Dy()
 	if width <= maxSize && height <= maxSize {
-		return src
+		return imageImage
 	}
 
 	var newW, newH int
@@ -440,21 +443,23 @@ func resizeLogo(src image.Image, maxSize int) image.Image {
 	}
 
 	dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
-	draw.ApproxBiLinear.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
+	draw.ApproxBiLinear.Scale(dst, dst.Bounds(), imageImage, imageImage.Bounds(), draw.Over, nil)
 	return dst
 }
 
-func invertImage(src image.Image) image.Image {
-	if src == nil {
+func invertImage(
+	imageImage image.Image,
+) image.Image {
+	if imageImage == nil {
 		return nil
 	}
-	bounds := src.Bounds()
-	out := image.NewRGBA(bounds)
+	bounds := imageImage.Bounds()
+	imageRGBA := image.NewRGBA(bounds)
 
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			r, g, b, a := src.At(x, y).RGBA()
-			out.Set(x, y, color.RGBA{
+			r, g, b, a := imageImage.At(x, y).RGBA()
+			imageRGBA.Set(x, y, color.RGBA{
 				R: uint8(255 - r/257),
 				G: uint8(255 - g/257),
 				B: uint8(255 - b/257),
@@ -463,7 +468,7 @@ func invertImage(src image.Image) image.Image {
 		}
 	}
 
-	return out
+	return imageRGBA
 }
 
 func loadEnvFile() {

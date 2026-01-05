@@ -15,6 +15,6 @@
 		".vscode-insiders",
 		"go.mod",
 		"go.sum",
-		"makefile"
+		"Makefile"
 	]
 }
