@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"image"
 	"image/draw"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -29,22 +31,45 @@ var (
 	keyFile       = defaultKeyFile
 )
 
+// LayoutType defines supported layout element kinds.
+type LayoutType string
+
+const (
+	LayoutTypeText  LayoutType = "text"
+	LayoutTypeLine  LayoutType = "line"
+	LayoutTypeQR    LayoutType = "qr"
+	LayoutTypeFeed  LayoutType = "feed"
+	LayoutTypeSpace LayoutType = "space"
+	LayoutTypeCut   LayoutType = "cut"
+)
+
+// AlignType defines supported text alignment values.
+type AlignType string
+
+const (
+	AlignLeft   AlignType = "left"
+	AlignCenter AlignType = "center"
+	AlignRight  AlignType = "right"
+)
+
+const line = "__________________________\n\n"
+
 type PrintRequest struct {
 	Layout []LayoutItem `json:"layout"`
 }
 
 type LayoutItem struct {
-	Type      string `json:"type"`
-	Text      string `json:"text,omitempty"`
-	Align     string `json:"align,omitempty"`
-	Bold      bool   `json:"bold,omitempty"`
-	Underline bool   `json:"underline,omitempty"`
-	Invert    bool   `json:"invert,omitempty"`
-	Width     uint8  `json:"width,omitempty"`
-	Height    uint8  `json:"height,omitempty"`
-	Feed      int    `json:"feed,omitempty"`
-	QR        string `json:"qr,omitempty"`
-	URL       string `json:"url,omitempty"`
+	Type      LayoutType `json:"type"`
+	Text      string     `json:"text,omitempty"`
+	Align     AlignType  `json:"align,omitempty"`
+	Bold      bool       `json:"bold,omitempty"`
+	Underline bool       `json:"underline,omitempty"`
+	Invert    bool       `json:"invert,omitempty"`
+	Width     uint8      `json:"width,omitempty"`
+	Height    uint8      `json:"height,omitempty"`
+	Feed      int        `json:"feed,omitempty"`
+	QR        string     `json:"qr,omitempty"`
+	URL       string     `json:"url,omitempty"`
 }
 
 func main() {
@@ -86,16 +111,19 @@ func main() {
 }
 
 func handlePrint(c echo.Context) error {
-	var req PrintRequest
-	if err := c.Bind(&req); err != nil {
+	var printRequest PrintRequest
+	if err := c.Bind(&printRequest); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid JSON payload"})
 	}
 
-	if len(req.Layout) == 0 {
+	if len(printRequest.Layout) == 0 {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "layout is required"})
 	}
+	log.Println("== == == == == == == == == == ")
+	log.Printf("%#v\n", printRequest)
+	log.Println("== == == == == == == == == == ")
 
-	if err := printContent(req); err != nil {
+	if err := printContent(printRequest); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
@@ -105,7 +133,15 @@ func handlePrint(c echo.Context) error {
 func printContent(req PrintRequest) error {
 	f, err := os.OpenFile(printerDevice, os.O_RDWR, 0)
 	if err != nil {
-		return fmt.Errorf("open printer: %w", err)
+		if errors.Is(err, os.ErrPermission) {
+			if chmodErr := os.Chmod(printerDevice, 0o666); chmodErr != nil {
+				return fmt.Errorf("change printer permission: %w", chmodErr)
+			}
+			f, err = os.OpenFile(printerDevice, os.O_RDWR, 0)
+		}
+		if err != nil {
+			return fmt.Errorf("open printer: %w", err)
+		}
 	}
 	defer f.Close()
 
@@ -149,13 +185,22 @@ func printQRCode(p *escpos.Escpos, value string) error {
 
 func printLayout(p *escpos.Escpos, items []LayoutItem) error {
 	for _, item := range items {
-		typeName := strings.ToLower(item.Type)
+		typeName := strings.ToLower(string(item.Type))
+		log.Println("== == == == == == == == == == ")
+		log.Printf("%#v\n", typeName)
+
 		switch typeName {
-		case "text", "line":
+		case string(LayoutTypeText):
 			if err := printLayoutText(p, item); err != nil {
 				return err
 			}
-		case "qr":
+
+		case string(LayoutTypeLine):
+			if err := printLayoutLine(p); err != nil {
+				return err
+			}
+
+		case string(LayoutTypeQR):
 			qrValue := item.QR
 			if qrValue == "" {
 				qrValue = item.URL
@@ -166,26 +211,47 @@ func printLayout(p *escpos.Escpos, items []LayoutItem) error {
 			if err := printQRCode(p, qrValue); err != nil {
 				return err
 			}
-		case "feed":
+		case string(LayoutTypeFeed):
 			count := item.Feed
 			if count <= 0 {
 				count = 1
 			}
 			p.FormfeedN(count)
-		case "cut":
+		case string(LayoutTypeCut):
 			p.Cut()
-		case "space":
+		case string(LayoutTypeSpace):
 			p.Linefeed()
+		default:
+			return fmt.Errorf("unsupported layout type: %s", item.Type)
 		}
 	}
 
 	return nil
 }
 
+func printLayoutLine(p *escpos.Escpos) error {
+
+	encoded, err := encodeShiftJIS(line)
+	if err != nil {
+		return fmt.Errorf("encode line: %w", err)
+	}
+
+	p.SetAlign("center")
+	p.Write(encoded)
+
+	return nil
+}
+
 func printLayoutText(p *escpos.Escpos, item LayoutItem) error {
-	align := strings.ToLower(item.Align)
+	align := strings.ToLower(string(item.Align))
 	if align == "" {
-		align = "left"
+		align = string(AlignLeft)
+	}
+	switch align {
+	case string(AlignLeft), string(AlignCenter), string(AlignRight):
+		// ok
+	default:
+		return fmt.Errorf("unsupported align: %s", item.Align)
 	}
 	p.SetAlign(align)
 

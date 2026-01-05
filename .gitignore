@@ -35,3 +35,4 @@ server.crt
 server.key
 .cache/*
 .config/*
+bin/air
