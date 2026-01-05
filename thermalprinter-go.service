@@ -1,0 +1,15 @@
+[Unit]
+Description=Thermal printer API service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/bin
+ExecStart=/usr/local/bin/thermalprinter_go
+EnvironmentFile=-/etc/default/thermalprinter-go
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,10 +1,17 @@
-.PHONY: help install-tools dev run list-devices fmt tidy env cert lp-group stop
+.PHONY: help install-tools dev run list-devices fmt tidy env cert lp-group stop install-service
 
-help:
+SERVICE_NAME := thermalprinter-go
+SERVICE_FILE := $(SERVICE_NAME).service
+SERVICE_UNIT_PATH := /etc/systemd/system/$(SERVICE_FILE)
+BIN_TARGET := $(CURDIR)/bin/thermalprinter_go
+INSTALL_BIN := /usr/local/bin/thermalprinter_go
+
+	help:
 	@echo "make install-tools # go install github.com/air-verse/air@latest into ./bin"
 	@echo "make dev           # start with air if available, otherwise go run"
 	@echo "make run           # go run main.go"
 	@echo "make list-devices  # ls /dev/usb and printer nodes"
+	@echo "make install-service # build and (re)register systemd service"
 	@echo "make lp-group      # add current user to lp group"
 	@echo "make stop          # kill server using ECHO_PORT (default 1323)"
 	@echo "make cert          # generate self-signed TLS cert (server.crt/key)"
@@ -56,3 +63,12 @@ stop:
 		echo "killing $$PIDS on :$$PORT"; \
 		kill $$PIDS; \
 	fi
+
+install-service: $(SERVICE_FILE)
+	mkdir -p $(dir $(BIN_TARGET))
+	go build -o $(BIN_TARGET) main.go
+	sudo install -Dm755 $(BIN_TARGET) $(INSTALL_BIN)
+	sudo install -Dm644 $(SERVICE_FILE) $(SERVICE_UNIT_PATH)
+	sudo systemctl daemon-reload
+	sudo systemctl enable $(SERVICE_NAME)
+	sudo systemctl restart $(SERVICE_NAME)
