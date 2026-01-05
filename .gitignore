@@ -37,4 +37,4 @@ server.key
 .config/*
 bin/air
 tmp/build-errors.log
-bin/thermalprinter_go
+bin/thermalprinter-go

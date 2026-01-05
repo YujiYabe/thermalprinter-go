@@ -1,4 +1,4 @@
-# thermalprinter_go
+# thermalprinter-go
 
 ## 開発用ホットリロード (air)
 - インストール: `go install github.com/air-verse/air@latest`

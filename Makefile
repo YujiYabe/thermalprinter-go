@@ -1,8 +1,8 @@
 SERVICE_NAME := thermalprinter-go
 SERVICE_FILE := $(SERVICE_NAME).service
 SERVICE_UNIT_PATH := /etc/systemd/system/$(SERVICE_FILE)
-BIN_TARGET := $(CURDIR)/bin/thermalprinter_go
-INSTALL_BIN := /usr/local/bin/thermalprinter_go
+BIN_TARGET := $(CURDIR)/bin/thermalprinter-go
+INSTALL_BIN := /usr/local/bin/thermalprinter-go
 
 .PHONY: help
 help:
@@ -40,7 +40,7 @@ run:
 
 .PHONY: cert
 cert:
-	openssl req -x509 -newkey rsa:2048 -nodes -keyout server.key -out server.crt -days 365 -subj "/CN=localhost"
+	openssl req -x509 -newkey rsa:2048 -nodes -keyout server.key -out server.crt -days 3650 -subj "/CN=localhost"
 
 .PHONY: list-devices
 list-devices:
