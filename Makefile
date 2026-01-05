@@ -6,18 +6,20 @@ INSTALL_BIN := /usr/local/bin/thermalprinter_go
 
 .PHONY: help
 help:
-	@echo "make install-tools # go install github.com/air-verse/air@latest into ./bin"
-	@echo "make dev           # start with air if available, otherwise go run"
-	@echo "make run           # go run main.go"
-	@echo "make list-devices  # ls /dev/usb and printer nodes"
-	@echo "make build         # build binary into ./bin"
+	@echo "make install-tools   # go install github.com/air-verse/air@latest into ./bin"
+	@echo "make lp-group        # add current user to lp group"
+	@echo "make list-devices    # ls /dev/usb and printer nodes"
+
+	@echo "make build           # build binary into ./bin"
 	@echo "make install-service # build and (re)register systemd service"
-	@echo "make lp-group      # add current user to lp group"
-	@echo "make stop          # kill server using ECHO_PORT (default 1323)"
-	@echo "make cert          # generate self-signed TLS cert (server.crt/key)"
-	@echo "make fmt           # gofmt all go files"
-	@echo "make tidy          # go mod tidy"
-	@echo "make env           # show .env if present"
+
+	@echo "make dev             # start with air if available, otherwise go run"
+	@echo "make run             # go run main.go"
+	@echo "make stop            # kill server using ECHO_PORT (default 1323)"
+
+	@echo "make cert            # generate self-signed TLS cert (server.crt/key)"
+	@echo "make fmt             # gofmt all go files"
+	@echo "make env             # show .env if present"
 
 .PHONY: install-tools
 install-tools:
@@ -50,9 +52,6 @@ list-devices:
 fmt:
 	gofmt -w $(shell find . -name '*.go' -not -path './vendor/*')
 
-.PHONY: tidy
-tidy:
-	go mod tidy
 
 .PHONY: env
 env:
@@ -83,6 +82,7 @@ $(BIN_TARGET): main.go
 install-service: $(SERVICE_FILE) build
 	sudo install -Dm755 $(BIN_TARGET) $(INSTALL_BIN)
 	sudo install -Dm644 $(SERVICE_FILE) $(SERVICE_UNIT_PATH)
+	@if [ -f .env ]; then sudo install -Dm644 .env /etc/default/$(SERVICE_NAME); fi
 	sudo systemctl daemon-reload
 	sudo systemctl enable $(SERVICE_NAME)
 	sudo systemctl restart $(SERVICE_NAME)
