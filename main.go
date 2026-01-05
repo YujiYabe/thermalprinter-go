@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -52,7 +51,7 @@ const (
 	AlignRight  AlignType = "right"
 )
 
-const line = "__________________________\n\n"
+const line = "＿＿＿＿＿＿＿＿＿＿＿＿＿" + "\n\n"
 
 type PrintRequest struct {
 	Layout []LayoutItem `json:"layout"`
@@ -119,9 +118,6 @@ func handlePrint(c echo.Context) error {
 	if len(printRequest.Layout) == 0 {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "layout is required"})
 	}
-	log.Println("== == == == == == == == == == ")
-	log.Printf("%#v\n", printRequest)
-	log.Println("== == == == == == == == == == ")
 
 	if err := printContent(printRequest); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -131,21 +127,32 @@ func handlePrint(c echo.Context) error {
 }
 
 func printContent(req PrintRequest) error {
-	f, err := os.OpenFile(printerDevice, os.O_RDWR, 0)
+	osFile, err := os.OpenFile(printerDevice, os.O_RDWR, 0)
 	if err != nil {
 		if errors.Is(err, os.ErrPermission) {
 			if chmodErr := os.Chmod(printerDevice, 0o666); chmodErr != nil {
 				return fmt.Errorf("change printer permission: %w", chmodErr)
 			}
-			f, err = os.OpenFile(printerDevice, os.O_RDWR, 0)
+			osFile, err = os.OpenFile(printerDevice, os.O_RDWR, 0)
 		}
 		if err != nil {
 			return fmt.Errorf("open printer: %w", err)
 		}
 	}
-	defer f.Close()
+	defer osFile.Close()
 
-	rw := bufio.NewReadWriter(bufio.NewReader(f), bufio.NewWriter(f))
+	rw := bufio.NewReadWriter(bufio.NewReader(osFile), bufio.NewWriter(osFile))
+
+	// Some printers drop the first byte right after the device is opened.
+	// Send a harmless NUL up-front so the initialization command (ESC @)
+	// is not truncated and printed as a literal '@'.
+	if _, err := rw.Write([]byte{0x00}); err != nil {
+		return fmt.Errorf("prime printer: %w", err)
+	}
+	if err := rw.Flush(); err != nil {
+		return fmt.Errorf("prime printer flush: %w", err)
+	}
+
 	p := escpos.New(rw)
 	p.Init()
 	setJapaneseMode(p)
@@ -186,8 +193,6 @@ func printQRCode(p *escpos.Escpos, value string) error {
 func printLayout(p *escpos.Escpos, items []LayoutItem) error {
 	for _, item := range items {
 		typeName := strings.ToLower(string(item.Type))
-		log.Println("== == == == == == == == == == ")
-		log.Printf("%#v\n", typeName)
 
 		switch typeName {
 		case string(LayoutTypeText):
@@ -211,16 +216,20 @@ func printLayout(p *escpos.Escpos, items []LayoutItem) error {
 			if err := printQRCode(p, qrValue); err != nil {
 				return err
 			}
+
 		case string(LayoutTypeFeed):
 			count := item.Feed
 			if count <= 0 {
 				count = 1
 			}
 			p.FormfeedN(count)
+
 		case string(LayoutTypeCut):
 			p.Cut()
+
 		case string(LayoutTypeSpace):
 			p.Linefeed()
+
 		default:
 			return fmt.Errorf("unsupported layout type: %s", item.Type)
 		}

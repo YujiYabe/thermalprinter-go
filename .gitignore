@@ -36,3 +36,4 @@ server.key
 .cache/*
 .config/*
 bin/air
+tmp/build-errors.log
