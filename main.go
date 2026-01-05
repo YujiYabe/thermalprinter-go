@@ -17,9 +17,17 @@ import (
 	"golang.org/x/text/encoding/japanese"
 )
 
-const defaultPrinterDevice = "/dev/usb/lp0"
+const (
+	defaultPrinterDevice = "/dev/usb/lp0"
+	defaultCertFile      = "server.crt"
+	defaultKeyFile       = "server.key"
+)
 
-var printerDevice = defaultPrinterDevice
+var (
+	printerDevice = defaultPrinterDevice
+	certFile      = defaultCertFile
+	keyFile       = defaultKeyFile
+)
 
 type PrintRequest struct {
 	Title  string       `json:"title"`
@@ -44,24 +52,39 @@ type LayoutItem struct {
 
 func main() {
 	loadEnvFile()
-	printerDevice = getEnv("PRINTER_DEVICE", defaultPrinterDevice)
+	printerDevice = getEnv(
+		"PRINTER_DEVICE",
+		defaultPrinterDevice,
+	)
+	certFile = getEnv("ECHO_CERT_FILE", defaultCertFile)
+	keyFile = getEnv("ECHO_KEY_FILE", defaultKeyFile)
+
 	port := getEnv("ECHO_PORT", "1323")
+	scheme := strings.ToLower(getEnv("ECHO_SCHEME", "http"))
 	addr := port
 	if !strings.HasPrefix(addr, ":") {
 		addr = ":" + addr
 	}
 
-	e := echo.New()
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+	echoEcho := echo.New()
+	echoEcho.HideBanner = true
+
+	echoEcho.Use(middleware.Logger())
+	echoEcho.Use(middleware.Recover())
+	echoEcho.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{http.MethodPost, http.MethodOptions},
 	}))
 
-	e.POST("/print", handlePrint)
+	echoEcho.POST("/print", handlePrint)
 
-	e.Logger.Fatal(e.Start(addr))
+	var err error
+	if scheme == "https" {
+		err = echoEcho.StartTLS(addr, certFile, keyFile)
+	} else {
+		err = echoEcho.Start(addr)
+	}
+	echoEcho.Logger.Fatal(err)
 }
 
 func handlePrint(c echo.Context) error {

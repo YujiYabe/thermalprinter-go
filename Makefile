@@ -1,10 +1,11 @@
-.PHONY: help install-air dev run list-devices fmt tidy env
+.PHONY: help install-air dev run list-devices fmt tidy env cert
 
 help:
 	@echo "make install-air   # go install github.com/air-verse/air@latest"
 	@echo "make dev           # start with air if available, otherwise go run"
 	@echo "make run           # go run main.go"
 	@echo "make list-devices  # ls /dev/usb and printer nodes"
+	@echo "make cert          # generate self-signed TLS cert (server.crt/key)"
 	@echo "make fmt           # gofmt all go files"
 	@echo "make tidy          # go mod tidy"
 	@echo "make env           # show .env if present"
@@ -22,6 +23,9 @@ dev:
 
 run:
 	go run main.go
+
+cert:
+	openssl req -x509 -newkey rsa:2048 -nodes -keyout server.key -out server.crt -days 365 -subj "/CN=localhost"
 
 list-devices:
 	@echo "Listing /dev/usb (and lp* nodes if present)"

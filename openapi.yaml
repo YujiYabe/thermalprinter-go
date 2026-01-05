@@ -5,6 +5,7 @@ info:
   description: REST API for printing via Echo and ESC/POS.
 servers:
   - url: http://localhost:1323
+  - url: https://localhost:1323
 paths:
   /print:
     post:
