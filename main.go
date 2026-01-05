@@ -30,9 +30,6 @@ var (
 )
 
 type PrintRequest struct {
-	Title  string       `json:"title"`
-	Body   string       `json:"body"`
-	URL    string       `json:"url"`
 	Layout []LayoutItem `json:"layout"`
 }
 
@@ -94,8 +91,8 @@ func handlePrint(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid JSON payload"})
 	}
 
-	if len(req.Layout) == 0 && req.Title == "" && req.Body == "" && req.URL == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "layout or title/body/url is required"})
+	if len(req.Layout) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "layout is required"})
 	}
 
 	if err := printContent(req); err != nil {
@@ -117,69 +114,14 @@ func printContent(req PrintRequest) error {
 	p.Init()
 	setJapaneseMode(p)
 
-	if len(req.Layout) > 0 {
-		if err := printLayout(p, req.Layout); err != nil {
-			return err
-		}
-	} else {
-		if err := printTitle(p, req.Title); err != nil {
-			return err
-		}
-
-		if err := printBody(p, req.Body); err != nil {
-			return err
-		}
-
-		if err := printQRCode(p, req.URL); err != nil {
-			return err
-		}
-
-		p.FormfeedN(3)
-		p.Cut()
+	if err := printLayout(p, req.Layout); err != nil {
+		return err
 	}
 	p.End()
 
 	if err := rw.Flush(); err != nil {
 		return fmt.Errorf("flush: %w", err)
 	}
-
-	return nil
-}
-
-func printTitle(p *escpos.Escpos, title string) error {
-	if title == "" {
-		return nil
-	}
-
-	encoded, err := encodeShiftJIS(title)
-	if err != nil {
-		return fmt.Errorf("encode title: %w", err)
-	}
-
-	p.SetAlign("center")
-	p.SetFontSize(2, 2)
-	p.SetEmphasize(1)
-	p.Write(encoded)
-	p.Linefeed()
-	p.SetEmphasize(0)
-	p.SetFontSize(1, 1)
-
-	return nil
-}
-
-func printBody(p *escpos.Escpos, body string) error {
-	if body == "" {
-		return nil
-	}
-
-	encoded, err := encodeShiftJIS(body)
-	if err != nil {
-		return fmt.Errorf("encode body: %w", err)
-	}
-
-	p.SetAlign("left")
-	p.Write(encoded)
-	p.Linefeed()
 
 	return nil
 }

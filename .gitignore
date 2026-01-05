@@ -33,3 +33,5 @@ go.work.sum
 __debug_*
 server.crt
 server.key
+.cache/*
+.config/*
