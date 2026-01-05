@@ -21,11 +21,6 @@ Content-Type: {{contentType}}
 	]
 }
 
-# { "type": "text", "text": "シンプルレシートのサンプル" },
-# { "type": "text", "text": "日付: 2024-04-01" },
-# { "type": "text", "text": "担当: 山田" },
-# { "type": "feed", "feed": 1 },
-# { "type": "feed", "feed": 2 },
 
 ### パターン1: シンプルレシート
 POST {{baseUrl}}/print

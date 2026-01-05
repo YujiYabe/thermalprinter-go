@@ -2,10 +2,12 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"image"
-	"image/draw"
+	"image/color"
+	_ "image/jpeg"
 	"net/http"
 	"os"
 	"strings"
@@ -14,7 +16,8 @@ import (
 	"github.com/kenshaw/escpos/raster"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/skip2/go-qrcode"
+	"github.com/yeqown/go-qrcode"
+	"golang.org/x/image/draw"
 	"golang.org/x/text/encoding/japanese"
 )
 
@@ -28,6 +31,7 @@ var (
 	printerDevice = defaultPrinterDevice
 	certFile      = defaultCertFile
 	keyFile       = defaultKeyFile
+	useCenterLogo = false
 )
 
 // LayoutType はサポートするレイアウト要素の種類を表す。
@@ -357,55 +361,109 @@ func buildQRCodeImage(
 	imageImage image.Image,
 	err error,
 ) {
-	qr, err := qrcode.New(value, qrcode.Medium)
+
+	baseOpts := []qrcode.ImageOption{
+		qrcode.WithBorderWidth(3),
+		qrcode.WithQRWidth(8),
+		qrcode.WithFgColor(color.Black),
+		qrcode.WithBgColor(color.White),
+		qrcode.WithBuiltinImageEncoder(qrcode.PNG_FORMAT),
+	}
+
+	qrc, err := qrcode.New(value, baseOpts...)
 	if err != nil {
-		err = fmt.Errorf("generate QR: %w", err)
-		return
+		return nil, fmt.Errorf("generate QR: %w", err)
 	}
 
-	qr.DisableBorder = true
-
-	const baseSize = 256
-	img := qr.Image(baseSize)
-
-	bitmap := qr.Bitmap()
-	if len(bitmap) == 0 {
-		err = fmt.Errorf("empty QR bitmap")
-		return
+	if useCenterLogo {
+		logoImg, _ := loadLogoImage()
+		if logoImg != nil {
+			if attr, attrErr := qrc.Attribute(); attrErr == nil {
+				maxLogo := min(attr.W, attr.H) / 5
+				logoImg = resizeLogo(logoImg, maxLogo)
+				qrc, err = qrcode.New(
+					value,
+					append(baseOpts, qrcode.WithLogoImage(logoImg))...,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("generate QR with logo: %w", err)
+				}
+			}
+		}
 	}
 
-	modulePx := baseSize / len(bitmap)
-	if modulePx < 1 {
-		modulePx = 1
-	}
-	quietPx := modulePx // 周囲に1モジュールのクワイエットゾーンを追加
-
-	orig, ok := img.(*image.Paletted)
-	if !ok {
-		err = fmt.Errorf("unexpected QR image type %T", img)
-		return
+	var buf bytes.Buffer
+	if err := qrc.SaveTo(&buf); err != nil {
+		return nil, fmt.Errorf("render QR: %w", err)
 	}
 
-	outSize := baseSize + quietPx*2
+	img, _, err := image.Decode(&buf)
+	if err != nil {
+		return nil, fmt.Errorf("decode QR image: %w", err)
+	}
 
-	imagePaletted := image.NewPaletted(
-		image.Rect(0, 0, outSize, outSize),
-		orig.Palette,
-	)
+	return img, nil
+}
 
-	draw.Draw(
-		imagePaletted,
-		image.Rect(quietPx,
-			quietPx,
-			quietPx+baseSize,
-			quietPx+baseSize,
-		),
-		orig,
-		image.Point{},
-		draw.Src,
-	)
+func loadLogoImage() (image.Image, error) {
+	const logoPath = "./logo.png"
+	f, err := os.Open(logoPath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
 
-	return imagePaletted, nil
+	img, _, err := image.Decode(f)
+	if err != nil {
+		return nil, err
+	}
+	return invertImage(img), nil
+}
+
+func resizeLogo(src image.Image, maxSize int) image.Image {
+	if src == nil || maxSize <= 0 {
+		return src
+	}
+	width := src.Bounds().Dx()
+	height := src.Bounds().Dy()
+	if width <= maxSize && height <= maxSize {
+		return src
+	}
+
+	var newW, newH int
+	if width >= height {
+		newW = maxSize
+		newH = height * maxSize / width
+	} else {
+		newH = maxSize
+		newW = width * maxSize / height
+	}
+
+	dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
+	draw.ApproxBiLinear.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
+	return dst
+}
+
+func invertImage(src image.Image) image.Image {
+	if src == nil {
+		return nil
+	}
+	bounds := src.Bounds()
+	out := image.NewRGBA(bounds)
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			r, g, b, a := src.At(x, y).RGBA()
+			out.Set(x, y, color.RGBA{
+				R: uint8(255 - r/257),
+				G: uint8(255 - g/257),
+				B: uint8(255 - b/257),
+				A: uint8(a / 257),
+			})
+		}
+	}
+
+	return out
 }
 
 func loadEnvFile() {
