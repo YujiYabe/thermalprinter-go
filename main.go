@@ -74,6 +74,7 @@ func main() {
 	echoEcho.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{http.MethodPost, http.MethodOptions},
+		AllowHeaders: []string{"*"},
 	}))
 
 	echoEcho.POST("/print", handlePrint)
