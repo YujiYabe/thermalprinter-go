@@ -10,6 +10,7 @@ import (
 	_ "image/jpeg"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/kenshaw/escpos"
@@ -32,6 +33,11 @@ var (
 	certFile      = defaultCertFile
 	keyFile       = defaultKeyFile
 	useCenterLogo = false
+
+	printerEncoding  = "shift-jis"
+	kanjiCodeSystem  = uint8(0x01)
+	enableKanjiMode  = true
+	codePageOverride = -1
 )
 
 // LayoutType はサポートするレイアウト要素の種類を表す。
@@ -84,6 +90,10 @@ func main() {
 	certFile = getEnv("ECHO_CERT_FILE", defaultCertFile)
 	keyFile = getEnv("ECHO_KEY_FILE", defaultKeyFile)
 	port := getEnv("ECHO_PORT", "1323")
+	printerEncoding = strings.ToLower(getEnv("PRINTER_ENCODING", printerEncoding))
+	enableKanjiMode = strings.ToLower(getEnv("PRINTER_ENABLE_KANJI", "true")) != "false"
+	kanjiCodeSystem = getEnvUint8("PRINTER_KANJI_CODE_SYSTEM", kanjiCodeSystem)
+	codePageOverride = getEnvInt("PRINTER_CODE_PAGE", codePageOverride)
 
 	scheme := strings.ToLower(getEnv("ECHO_SCHEME", "http"))
 	addr := port
@@ -179,7 +189,7 @@ func printContent(req PrintRequest) (
 
 	escposEscpos := escpos.New(rw)
 	escposEscpos.Init()
-	setJapaneseMode(escposEscpos)
+	setCharacterMode(escposEscpos)
 
 	if err := printLayout(escposEscpos, req.Layout); err != nil {
 		return err
@@ -278,7 +288,7 @@ func printLayoutLine(
 	err error,
 ) {
 
-	encoded, err := encodeShiftJIS(line)
+	encoded, err := encodeText(line)
 	if err != nil {
 		err = fmt.Errorf("encode line: %w", err)
 		return
@@ -331,7 +341,7 @@ func printLayoutText(
 
 	if item.Text != "" {
 		for _, line := range strings.Split(item.Text, "\n") {
-			encoded, err := encodeShiftJIS(line)
+			encoded, err := encodeText(line)
 			if err != nil {
 				return fmt.Errorf("encode text: %w", err)
 			}
@@ -507,24 +517,52 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func setJapaneseMode(
+func setCharacterMode(
 	escposEscpos *escpos.Escpos,
 ) {
-	// ESC/POS プリンタで漢字モードと Shift-JIS を設定。
-	// FS & : 漢字モードを有効化
-	escposEscpos.WriteRaw([]byte{0x1c, 0x26})
-	// FS C n : 漢字コード系の選択 (1 = Shift-JIS)
-	escposEscpos.WriteRaw([]byte{0x1c, 0x43, 0x01})
-	// ESC R 8 : 日本の国際文字セットを選択（漢字モードと併用）
-	escposEscpos.SetLang("ja")
+	if enableKanjiMode {
+		// ESC/POS プリンタで漢字モードと Shift-JIS を設定。
+		// FS & : 漢字モードを有効化
+		escposEscpos.WriteRaw([]byte{0x1c, 0x26})
+		// FS C n : 漢字コード系の選択 (既定値: 1 = Shift-JIS)
+		escposEscpos.WriteRaw([]byte{0x1c, 0x43, kanjiCodeSystem})
+		// ESC R 8 : 日本の国際文字セットを選択（漢字モードと併用）
+		escposEscpos.SetLang("ja")
+	}
+
+	if codePageOverride >= 0 && codePageOverride <= 0xFF {
+		// ESC t n : コードページを選択（プリンターのマニュアルに従う）
+		escposEscpos.WriteRaw([]byte{0x1b, 0x74, byte(codePageOverride)})
+	}
 }
 
-func encodeShiftJIS(
+func encodeText(
 	text string,
 ) (string, error) {
-	encoded, err := japanese.ShiftJIS.NewEncoder().String(text)
-	if err != nil {
-		return "", err
+	switch printerEncoding {
+	case "shift-jis", "shiftjis", "sjis", "cp932":
+		return japanese.ShiftJIS.NewEncoder().String(text)
+	case "utf-8", "utf8":
+		return text, nil
+	default:
+		return "", fmt.Errorf("unsupported printer encoding: %s", printerEncoding)
 	}
-	return encoded, nil
+}
+
+func getEnvInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil {
+			return parsed
+		}
+	}
+	return fallback
+}
+
+func getEnvUint8(key string, fallback uint8) uint8 {
+	if v := os.Getenv(key); v != "" {
+		if parsed, err := strconv.ParseUint(v, 0, 8); err == nil {
+			return uint8(parsed)
+		}
+	}
+	return fallback
 }
