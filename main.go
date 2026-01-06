@@ -192,7 +192,9 @@ func printContent(req PrintRequest) (
 
 	escposEscpos := escpos.New(rw)
 	escposEscpos.Init()
-	setCharacterMode(escposEscpos)
+	if err := setCharacterMode(escposEscpos); err != nil {
+		return err
+	}
 
 	if err := printLayout(escposEscpos, req.Layout); err != nil {
 		return err
@@ -298,7 +300,10 @@ func printLayoutLine(
 	}
 
 	escposEscpos.SetAlign("center")
-	escposEscpos.Write(encoded)
+	if _, err = escposEscpos.Write(encoded); err != nil {
+		err = fmt.Errorf("write line: %w", err)
+		return
+	}
 
 	return
 }
@@ -349,7 +354,9 @@ func printLayoutText(
 			if err != nil {
 				return fmt.Errorf("encode text: %w", err)
 			}
-			escposEscpos.Write(encoded)
+			if _, err := escposEscpos.Write(encoded); err != nil {
+				return fmt.Errorf("write text: %w", err)
+			}
 			escposEscpos.Linefeed()
 		}
 	}
@@ -531,21 +538,29 @@ func getEnv(key, fallback string) string {
 
 func setCharacterMode(
 	escposEscpos *escpos.Escpos,
-) {
+) error {
 	if enableKanjiMode {
 		// ESC/POS プリンタで漢字モードと Shift-JIS を設定。
 		// FS & : 漢字モードを有効化
-		escposEscpos.WriteRaw([]byte{0x1c, 0x26})
+		if _, err := escposEscpos.WriteRaw([]byte{0x1c, 0x26}); err != nil {
+			return fmt.Errorf("enable kanji mode: %w", err)
+		}
 		// FS C n : 漢字コード系の選択 (既定値: 1 = Shift-JIS)
-		escposEscpos.WriteRaw([]byte{0x1c, 0x43, kanjiCodeSystem})
+		if _, err := escposEscpos.WriteRaw([]byte{0x1c, 0x43, kanjiCodeSystem}); err != nil {
+			return fmt.Errorf("set kanji code system: %w", err)
+		}
 		// ESC R 8 : 日本の国際文字セットを選択（漢字モードと併用）
 		escposEscpos.SetLang("ja")
 	}
 
 	if codePageOverride >= 0 && codePageOverride <= 0xFF {
 		// ESC t n : コードページを選択（プリンターのマニュアルに従う）
-		escposEscpos.WriteRaw([]byte{0x1b, 0x74, byte(codePageOverride)})
+		if _, err := escposEscpos.WriteRaw([]byte{0x1b, 0x74, byte(codePageOverride)}); err != nil {
+			return fmt.Errorf("set code page: %w", err)
+		}
 	}
+
+	return nil
 }
 
 func encodeText(
