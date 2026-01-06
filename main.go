@@ -175,7 +175,10 @@ func printContent(req PrintRequest) (
 	}
 	defer osFile.Close()
 
-	rw := bufio.NewReadWriter(bufio.NewReader(osFile), bufio.NewWriter(osFile))
+	rw := bufio.NewReadWriter(
+		bufio.NewReader(osFile),
+		bufio.NewWriter(osFile),
+	)
 
 	// 一部のプリンターは、デバイスをオープンした直後に最初のバイトを破棄します。
 	// 初期化コマンド（ESC @）が切り捨てられて「@」として印刷されないように、
@@ -310,6 +313,7 @@ func printLayoutText(
 	if align == "" {
 		align = string(AlignLeft)
 	}
+
 	switch align {
 	case string(AlignLeft), string(AlignCenter), string(AlignRight):
 		// 許容される値なのでそのまま進む
@@ -453,7 +457,15 @@ func resizeLogo(
 	}
 
 	dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
-	draw.ApproxBiLinear.Scale(dst, dst.Bounds(), imageImage, imageImage.Bounds(), draw.Over, nil)
+	draw.ApproxBiLinear.Scale(
+		dst,
+		dst.Bounds(),
+		imageImage,
+		imageImage.Bounds(),
+		draw.Over,
+		nil,
+	)
+
 	return dst
 }
 
@@ -538,27 +550,41 @@ func setCharacterMode(
 
 func encodeText(
 	text string,
-) (string, error) {
+) (
+	response string,
+	err error,
+) {
 	switch printerEncoding {
 	case "shift-jis", "shiftjis", "sjis", "cp932":
-		return japanese.ShiftJIS.NewEncoder().String(text)
+		response, err = japanese.ShiftJIS.NewEncoder().String(text)
+
 	case "utf-8", "utf8":
-		return text, nil
+		response = text
+
 	default:
-		return "", fmt.Errorf("unsupported printer encoding: %s", printerEncoding)
+		err = fmt.Errorf("unsupported printer encoding: %s", printerEncoding)
 	}
+
+	return
 }
 
-func getEnvInt(key string, fallback int) int {
+func getEnvInt(
+	key string,
+	fallback int,
+) int {
 	if v := os.Getenv(key); v != "" {
 		if parsed, err := strconv.Atoi(v); err == nil {
 			return parsed
 		}
 	}
+
 	return fallback
 }
 
-func getEnvUint8(key string, fallback uint8) uint8 {
+func getEnvUint8(
+	key string,
+	fallback uint8,
+) uint8 {
 	if v := os.Getenv(key); v != "" {
 		if parsed, err := strconv.ParseUint(v, 0, 8); err == nil {
 			return uint8(parsed)
