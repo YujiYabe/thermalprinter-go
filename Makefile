@@ -7,8 +7,8 @@ INSTALL_BIN := /usr/local/bin/thermalprinter-go
 .PHONY: help
 help:
 	@echo "make install-tools   # go install github.com/air-verse/air@latest into ./bin"
-	@echo "make lp-group        # add current user to lp group"
 	@echo "make list-devices    # ls /dev/usb and printer nodes"
+	@echo "make add-lp-group    # add current user to lp group"
 
 	@echo "make build           # build binary into ./bin"
 	@echo "make install-service # build and (re)register systemd service"
@@ -57,8 +57,8 @@ fmt:
 env:
 	@if [ -f .env ]; then cat .env; else echo ".env not found"; fi
 
-.PHONY: lp-group
-lp-group:
+.PHONY: add-lp-group
+add-lp-group:
 	sudo usermod -aG lp $$USER
 
 .PHONY: stop
@@ -79,7 +79,7 @@ $(BIN_TARGET): main.go
 	go build -o $(BIN_TARGET) main.go
 
 .PHONY: install-service
-install-service: $(SERVICE_FILE) build
+install-service: $(SERVICE_FILE)
 	sudo install -Dm755 $(BIN_TARGET) $(INSTALL_BIN)
 	sudo install -Dm644 $(SERVICE_FILE) $(SERVICE_UNIT_PATH)
 	@if [ -f .env ]; then sudo install -Dm644 .env /etc/default/$(SERVICE_NAME); fi
