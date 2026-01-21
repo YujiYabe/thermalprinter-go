@@ -1,3 +1,22 @@
+____________________________
+sudo apt update
+sudo apt install -y nano geany make
+
+
+cd .. && cp -pr ./thermalprinter-go ~/
+cd ~/thermalprinter-go
+
+
+____________________________
+chmod +x ./bin/thermalprinter-go 
+ll ./bin/thermalprinter-go
+
+
+
+
+
+
+
 
 ____________________________
 make list-devices
@@ -7,7 +26,9 @@ make list-devices
 ____________________________
 make add-lp-group
 
+
 ____________________________
+
 ./bin/thermalprinter-go
 テストプリントを実施
 
