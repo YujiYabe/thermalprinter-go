@@ -15,7 +15,7 @@ Content-Type: {{contentType}}
 		{ "type": "line"},
 		{ "type": "text", "text": "001", "align": "center", "bold": true, "width": 2, "height": 2 },
 		{ "type": "line"},
-		{ "type": "qr", "qr": "https://www.citizen-systems.co.jp/" },
+		{ "type": "qr", "qr": "https://35.213.116.53/sell_monitor.html?sell_id=01KFFVHZ50PJV06HRF1H7F3MYX" },
 		{ "type": "feed", "feed": 1 },
 		{ "type": "cut" }
 	]
