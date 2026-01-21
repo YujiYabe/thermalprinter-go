@@ -384,7 +384,7 @@ func buildQRCodeImage(
 ) {
 
 	baseOpts := []qrcode.ImageOption{
-		qrcode.WithBorderWidth(3),
+		// qrcode.WithBorderWidth(3),
 		qrcode.WithQRWidth(8),
 		qrcode.WithFgColor(color.Black),
 		qrcode.WithBgColor(color.White),
