@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/yeqown/go-qrcode"
 	"golang.org/x/text/encoding/japanese"
 )
 
@@ -144,5 +145,37 @@ func TestBuildQRCodeImage(t *testing.T) {
 	bounds := img.Bounds()
 	if bounds.Dx() == 0 || bounds.Dy() == 0 {
 		t.Fatalf("unexpected image bounds: %v", bounds)
+	}
+}
+
+func TestConfigureQRErrorCorrectionLevelFromEnv(t *testing.T) {
+	const key = "ERROR_CORRECTION_LEVEL"
+
+	originalEnv := os.Getenv(key)
+	originalEC := qrEncodingConfig.EcLevel
+	defer func() {
+		_ = os.Setenv(key, originalEnv)
+		qrEncodingConfig.EcLevel = originalEC
+	}()
+
+	qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionQuart
+	_ = os.Setenv(key, "L")
+	configureQRErrorCorrectionLevelFromEnv()
+	if qrEncodingConfig.EcLevel != qrcode.ErrorCorrectionLow {
+		t.Fatalf("expected ErrorCorrectionLow, got %v", qrEncodingConfig.EcLevel)
+	}
+
+	qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionQuart
+	_ = os.Setenv(key, "h")
+	configureQRErrorCorrectionLevelFromEnv()
+	if qrEncodingConfig.EcLevel != qrcode.ErrorCorrectionHighest {
+		t.Fatalf("expected ErrorCorrectionHighest, got %v", qrEncodingConfig.EcLevel)
+	}
+
+	qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionMedium
+	_ = os.Setenv(key, "invalid")
+	configureQRErrorCorrectionLevelFromEnv()
+	if qrEncodingConfig.EcLevel != qrcode.ErrorCorrectionMedium {
+		t.Fatalf("expected fallback level unchanged, got %v", qrEncodingConfig.EcLevel)
 	}
 }

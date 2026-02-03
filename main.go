@@ -38,6 +38,8 @@ var (
 	kanjiCodeSystem  = uint8(0x01)
 	enableKanjiMode  = true
 	codePageOverride = -1
+
+	qrEncodingConfig = qrcode.DefaultConfig()
 )
 
 // LayoutType はサポートするレイアウト要素の種類を表す。
@@ -94,6 +96,7 @@ func main() {
 	enableKanjiMode = strings.ToLower(getEnv("PRINTER_ENABLE_KANJI", "true")) != "false"
 	kanjiCodeSystem = getEnvUint8("PRINTER_KANJI_CODE_SYSTEM", kanjiCodeSystem)
 	codePageOverride = getEnvInt("PRINTER_CODE_PAGE", codePageOverride)
+	configureQRErrorCorrectionLevelFromEnv()
 
 	scheme := strings.ToLower(getEnv("ECHO_SCHEME", "http"))
 	addr := port
@@ -391,7 +394,7 @@ func buildQRCodeImage(
 		qrcode.WithBuiltinImageEncoder(qrcode.PNG_FORMAT),
 	}
 
-	qrc, err := qrcode.New(value, baseOpts...)
+	qrc, err := qrcode.NewWithConfig(value, qrEncodingConfig, baseOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("generate QR: %w", err)
 	}
@@ -402,8 +405,9 @@ func buildQRCodeImage(
 			if attr, attrErr := qrc.Attribute(); attrErr == nil {
 				maxLogo := min(attr.W, attr.H) / 5
 				logoImg = resizeLogo(logoImg, maxLogo)
-				qrc, err = qrcode.New(
+				qrc, err = qrcode.NewWithConfig(
 					value,
+					qrEncodingConfig,
 					append(baseOpts, qrcode.WithLogoImage(logoImg))...,
 				)
 				if err != nil {
@@ -606,4 +610,24 @@ func getEnvUint8(
 		}
 	}
 	return fallback
+}
+
+func configureQRErrorCorrectionLevelFromEnv() {
+	v := strings.ToUpper(strings.TrimSpace(getEnv("ERROR_CORRECTION_LEVEL", "")))
+	if v == "" {
+		return
+	}
+
+	switch v {
+	case "L", "LOW", "1":
+		qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionLow
+	case "M", "MEDIUM", "2":
+		qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionMedium
+	case "Q", "QUART", "3":
+		qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionQuart
+	case "H", "HIGH", "HIGHEST", "4":
+		qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionHighest
+	default:
+		fmt.Fprintf(os.Stderr, "WARN: invalid ERROR_CORRECTION_LEVEL=%q (use L/M/Q/H)\n", v)
+	}
 }
