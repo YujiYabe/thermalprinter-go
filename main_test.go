@@ -152,30 +152,30 @@ func TestConfigureQRErrorCorrectionLevelFromEnv(t *testing.T) {
 	const key = "ERROR_CORRECTION_LEVEL"
 
 	originalEnv := os.Getenv(key)
-	originalEC := qrEncodingConfig.EcLevel
+	originalEC := qrErrorCorrectionLevel
 	defer func() {
 		_ = os.Setenv(key, originalEnv)
-		qrEncodingConfig.EcLevel = originalEC
+		qrErrorCorrectionLevel = originalEC
 	}()
 
-	qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionQuart
+	qrErrorCorrectionLevel = qrcode.ErrorCorrectionQuart
 	_ = os.Setenv(key, "L")
 	configureQRErrorCorrectionLevelFromEnv()
-	if qrEncodingConfig.EcLevel != qrcode.ErrorCorrectionLow {
-		t.Fatalf("expected ErrorCorrectionLow, got %v", qrEncodingConfig.EcLevel)
+	if qrErrorCorrectionLevel != qrcode.ErrorCorrectionLow {
+		t.Fatalf("expected ErrorCorrectionLow, got %v", qrErrorCorrectionLevel)
 	}
 
-	qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionQuart
+	qrErrorCorrectionLevel = qrcode.ErrorCorrectionQuart
 	_ = os.Setenv(key, "h")
 	configureQRErrorCorrectionLevelFromEnv()
-	if qrEncodingConfig.EcLevel != qrcode.ErrorCorrectionHighest {
-		t.Fatalf("expected ErrorCorrectionHighest, got %v", qrEncodingConfig.EcLevel)
+	if qrErrorCorrectionLevel != qrcode.ErrorCorrectionHighest {
+		t.Fatalf("expected ErrorCorrectionHighest, got %v", qrErrorCorrectionLevel)
 	}
 
-	qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionMedium
+	qrErrorCorrectionLevel = qrcode.ErrorCorrectionMedium
 	_ = os.Setenv(key, "invalid")
 	configureQRErrorCorrectionLevelFromEnv()
-	if qrEncodingConfig.EcLevel != qrcode.ErrorCorrectionMedium {
-		t.Fatalf("expected fallback level unchanged, got %v", qrEncodingConfig.EcLevel)
+	if qrErrorCorrectionLevel != qrcode.ErrorCorrectionMedium {
+		t.Fatalf("expected fallback level unchanged, got %v", qrErrorCorrectionLevel)
 	}
 }

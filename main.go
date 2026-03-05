@@ -39,7 +39,7 @@ var (
 	enableKanjiMode  = true
 	codePageOverride = -1
 
-	qrEncodingConfig = qrcode.DefaultConfig()
+	qrErrorCorrectionLevel = qrcode.ErrorCorrectionMedium
 )
 
 // LayoutType はサポートするレイアウト要素の種類を表す。
@@ -394,7 +394,10 @@ func buildQRCodeImage(
 		qrcode.WithBuiltinImageEncoder(qrcode.PNG_FORMAT),
 	}
 
-	qrc, err := qrcode.NewWithConfig(value, qrEncodingConfig, baseOpts...)
+	cfg := qrcode.DefaultConfig()
+	cfg.EcLevel = qrErrorCorrectionLevel
+
+	qrc, err := qrcode.NewWithConfig(value, cfg, baseOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("generate QR: %w", err)
 	}
@@ -405,9 +408,11 @@ func buildQRCodeImage(
 			if attr, attrErr := qrc.Attribute(); attrErr == nil {
 				maxLogo := min(attr.W, attr.H) / 5
 				logoImg = resizeLogo(logoImg, maxLogo)
+				cfg := qrcode.DefaultConfig()
+				cfg.EcLevel = qrErrorCorrectionLevel
 				qrc, err = qrcode.NewWithConfig(
 					value,
-					qrEncodingConfig,
+					cfg,
 					append(baseOpts, qrcode.WithLogoImage(logoImg))...,
 				)
 				if err != nil {
@@ -620,13 +625,13 @@ func configureQRErrorCorrectionLevelFromEnv() {
 
 	switch v {
 	case "L", "LOW", "1":
-		qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionLow
+		qrErrorCorrectionLevel = qrcode.ErrorCorrectionLow
 	case "M", "MEDIUM", "2":
-		qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionMedium
+		qrErrorCorrectionLevel = qrcode.ErrorCorrectionMedium
 	case "Q", "QUART", "3":
-		qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionQuart
+		qrErrorCorrectionLevel = qrcode.ErrorCorrectionQuart
 	case "H", "HIGH", "HIGHEST", "4":
-		qrEncodingConfig.EcLevel = qrcode.ErrorCorrectionHighest
+		qrErrorCorrectionLevel = qrcode.ErrorCorrectionHighest
 	default:
 		fmt.Fprintf(os.Stderr, "WARN: invalid ERROR_CORRECTION_LEVEL=%q (use L/M/Q/H)\n", v)
 	}
