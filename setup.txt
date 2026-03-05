@@ -1,4 +1,18 @@
 ____________________________
+プリンターのセットアップ
+busicom CT-S253
+https://www.citizen-systems.co.jp/printer/download/driver/?p=CT-S255
+Linux CUPSドライバー
+
+解凍したファイルからOSにあったファイルをインストール
+chmod +x ./ctzpos-cups_1.2.8-0_amd64.deb
+sudo apt install ./ctzpos-cups_1.2.8-0_amd64.deb 
+
+設定→printers
+
+
+
+____________________________
 sudo apt update
 sudo apt install -y nano geany make
 
