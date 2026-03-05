@@ -14,7 +14,8 @@ sudo apt install ./ctzpos-cups_1.2.8-0_amd64.deb
 
 ____________________________
 sudo apt update
-sudo apt install -y nano geany make
+sudo apt install -y nano geany make firefox
+sudo snap install brave
 
 
 cd .. && cp -pr ./thermalprinter-go ~/
@@ -43,11 +44,17 @@ ____________________________
 ./bin/thermalprinter-go
 テストプリントを実施
 
+
 curl --request POST \
   --url http://localhost:1323/print \
   --header 'content-type: application/json' \
   --header 'user-agent: vscode-restclient' \
   --data '{"layout": [{ "type": "line"},{ "type": "text", "text": "福島local", "align": "center", "bold": true, "width": 2, "height": 2 },{ "type": "line"},{ "type": "text", "text": "2025/01/05 13:12:14", "align": "center", "bold": false, "width": 1, "height": 1 },{ "type": "line"},{ "type": "text", "text": "001", "align": "center", "bold": true, "width": 2, "height": 2 },{ "type": "line"},{ "type": "qr", "qr": "https://35.213.116.53/sell_monitor.html?sell_id=01KFFVHZ50PJV06HRF1H7F3MYX" },{ "type": "feed", "feed": 1 },{ "type": "cut" }]}'
-	
+
+
 ____________________________
 make install-service
+
+
+
+
