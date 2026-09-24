@@ -3,10 +3,14 @@ SERVICE_FILE := $(SERVICE_NAME).service
 SERVICE_UNIT_PATH := /etc/systemd/system/$(SERVICE_FILE)
 BIN_TARGET := $(CURDIR)/bin/thermalprinter-go
 INSTALL_BIN := /usr/local/bin/thermalprinter-go
+GOLANGCI_LINT_VERSION := $(shell cat .golangci-lint-version)
+GOLANGCI_LINT := $(CURDIR)/bin/golangci-lint
 
 .PHONY: help
 help:
 	@echo "make install-tools   # go install github.com/air-verse/air@latest into ./bin"
+	@echo "make install-lint    # install the pinned golangci-lint into ./bin"
+	@echo "make lint            # run golangci-lint"
 	@echo "make list-devices    # ls /dev/usb and printer nodes"
 	@echo "make add-lp-group    # add current user to lp group"
 
@@ -24,6 +28,17 @@ help:
 .PHONY: install-tools
 install-tools:
 	GOBIN=$(PWD)/bin go install github.com/air-verse/air@latest
+
+.PHONY: install-lint
+install-lint:
+	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(CURDIR)/bin $(GOLANGCI_LINT_VERSION)
+
+.PHONY: lint
+lint: $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) run ./...
+
+$(GOLANGCI_LINT): .golangci-lint-version
+	$(MAKE) install-lint
 
 .PHONY: dev
 dev:

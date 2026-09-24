@@ -107,7 +107,7 @@ func main() {
 	echoEcho := echo.New()
 	echoEcho.HideBanner = true
 
-	echoEcho.Use(middleware.Logger())
+	echoEcho.Use(middleware.RequestLogger())
 	echoEcho.Use(middleware.Recover())
 	echoEcho.Use(
 		middleware.CORSWithConfig(
@@ -176,7 +176,11 @@ func printContent(req PrintRequest) (
 			return fmt.Errorf("open printer: %w", err)
 		}
 	}
-	defer osFile.Close()
+	defer func() {
+		if closeErr := osFile.Close(); err == nil && closeErr != nil {
+			err = fmt.Errorf("close printer: %w", closeErr)
+		}
+	}()
 
 	rw := bufio.NewReadWriter(
 		bufio.NewReader(osFile),
@@ -435,13 +439,17 @@ func buildQRCodeImage(
 	return img, nil
 }
 
-func loadLogoImage() (image.Image, error) {
+func loadLogoImage() (_ image.Image, err error) {
 	const logoPath = "./logo.png"
 	f, err := os.Open(logoPath)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); err == nil && closeErr != nil {
+			err = fmt.Errorf("close logo: %w", closeErr)
+		}
+	}()
 
 	img, _, err := image.Decode(f)
 	if err != nil {
@@ -496,12 +504,15 @@ func invertImage(
 
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			r, g, b, a := imageImage.At(x, y).RGBA()
+			source, ok := color.RGBAModel.Convert(imageImage.At(x, y)).(color.RGBA)
+			if !ok {
+				continue
+			}
 			imageRGBA.Set(x, y, color.RGBA{
-				R: uint8(255 - r/257),
-				G: uint8(255 - g/257),
-				B: uint8(255 - b/257),
-				A: uint8(a / 257),
+				R: 255 - source.R,
+				G: 255 - source.G,
+				B: 255 - source.B,
+				A: source.A,
 			})
 		}
 	}
@@ -514,7 +525,9 @@ func loadEnvFile() {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {

@@ -1,0 +1,139 @@
+version: "2"
+linters:
+  enable:
+    # 推奨度: #1=基本有効化推奨, #2=有効化推奨, #3=設定調整して検討, #4=用途限定
+    # #1 基本有効化推奨
+    - govet                     #1 Go公式の静的解析(printfミス、到達不能コード、ロックコピーなどを検出)
+    - staticcheck               #1 静的解析(バグの検出、コードの簡素化、パフォーマンスの改善、スタイルの修正・非推奨の警告)
+    - errcheck                  #1 戻り値のerror未確認を検出(重要な失敗の握りつぶしを防ぐ)
+    - gosec                     #1 セキュリティ静的解析(危険な乱数、権限、SQL、TLS設定などを検出)
+    - ineffassign               #1 代入した値が使われないケースを検出(バグや不要コードの発見)
+    - unused                    #1 未使用の変数、関数、型、定数などを検出(不要コードの整理)
+
+    # #2 有効化推奨
+    - gocyclo                   #2 関数の循環的複雑度を検出(複雑すぎる処理の目安)
+    - bidichk                   #2 Unicodeの双方向制御文字を検出(ソース偽装対策)
+    - bodyclose                 #2 HTTPレスポンスボディのclose漏れを検出(接続リーク防止)
+    - contextcheck              #2 context.Contextを継承しない呼び出しを検出(キャンセル伝播漏れ防止)
+    - copyloopvar               #2 ループ変数の不要コピーを検出(Go 1.22以降では用途限定)
+    - dupword                   #2 コメントや文字列内の重複単語を検出(文書品質向上)
+    - durationcheck             #2 time.Duration同士の不自然な乗算を検出(時間計算ミス防止)
+    - errchkjson                #2 JSONエンコード/デコード時のerror未確認を検出
+    - errorlint                 #2 errors.Is/As/%wの使い方を検査(error wrapping品質向上)
+    - forcetypeassert           #2 uncheckedな型アサーションを検出(panic防止)
+    - gocheckcompilerdirectives #2 //go:buildなどコンパイラ指示の誤用を検出
+    - gocritic                  #2 多数のコード品質/バグ候補を検出(設定調整前提で有用)
+    - makezero                  #2 makeで長さ非ゼロsliceを作ってappendするミスを検出
+    - misspell                  #2 コメント/文字列の英単語スペルミスを検出
+    - nilerr                    #2 errorがあるのにnilを返す不自然な処理を検出
+    - nilnesserr                #2 nilness解析でnil誤用を検出(実験的なバグ検出)
+    - nilnil                    #2 nil,nil返却を検出(曖昧な正常/異常判定を防ぐ)
+    - noctx                     #2 contextなしHTTPリクエスト生成を検出(キャンセル不能処理の防止)
+    - nolintlint                #2 nolintコメントの形式/不要指定を検査(抑制の健全性維持)
+    - nosprintfhostport         #2 host:port生成でfmt.Sprintfを使う危険を検出(IPv6対応漏れ防止)
+    - revive                    #2 golint後継のスタイル/品質チェック(設定調整で有用)
+    - rowserrcheck              #2 database/sqlのRows.Err確認漏れを検出(DB読み取りエラー防止)
+    - sqlclosecheck             #2 database/sqlのRows/Stmt close漏れを検出(リソースリーク防止)
+    - thelper                   #2 テストヘルパーのt.Helper()漏れを検出(失敗位置を見やすくする)
+    - unconvert                 #2 不要な型変換を検出(コード簡素化)
+    - wastedassign              #2 代入値が後で上書きされるケースを検出(バグ/不要処理の発見)
+
+    # #3 設定調整して検討
+    - iface                     #3 interfaceの置き場所や使い方を検査(設計規約向け)
+    - loggercheck               #3 slog/logr/zapなど構造化ログの引数ミスを検出
+    - predeclared               #3 組み込み識別子のシャドーイングを検出(len/errorなど)
+    # - asasalint                 #3 pass-anything系APIへの[]any渡しを検出(テスト/モック品質向け)
+    # - canonicalheader           #3 HTTPヘッダー名の標準表記を検出(表記ゆれ防止)
+    # - containedctx              #3 struct内のcontext.Context保持を検出(ライフサイクル誤用防止)
+    # - cyclop                    #3 パッケージ/関数の複雑度を検出(gocycloより細かい複雑度管理)
+    # - dogsled                   #3 ブランク識別子の多用を検出(戻り値の意図を明確化)
+    # - dupl                      #3 重複コードを検出(リファクタ候補の把握)
+    # - errname                   #3 error変数/型の命名規約を検査(err/Err接頭辞の統一)
+    # - exhaustive                #3 enum風のswitchでcase漏れを検出(状態追加時の漏れ防止)
+    # - fatcontext                #3 ループ内でcontextを積み重ねる誤用を検出(リーク/遅延防止)
+    # - forbidigo                 #3 禁止した識別子/呼び出しを検出(fmt.Println禁止などの規約向け)
+    # - gochecksumtype            #3 sum type風の網羅性を検査(型設計が合う場合)
+    # - gocognit                  #3 認知的複雑度を検出(読みづらい処理の発見)
+    # - goconst                   #3 繰り返し文字列の定数化候補を検出(過剰抽象に注意)
+    # - godox                     #3 TODO/FIXMEなどのコメントを検出(残課題管理向け)
+    # - gomoddirectives           #3 go.modのreplace/retract/exclude等を検査(依存管理規約向け)
+    # - gomodguard                #3 禁止/許可モジュールを検査(依存ポリシー管理向け)
+    # - goprintffuncname          #3 printf風関数の命名を検査(書式指定APIの誤用防止)
+    # - interfacebloat            #3 メソッド数が多すぎるinterfaceを検出(責務分割の目安)
+    # - intrange                  #3 整数rangeへ置換可能なループを検出(新Go記法への移行向け)
+    # - maintidx                  #3 保守性指数を検出(複雑なファイルの目安)
+    # - mirror                    #3 bytes/strings系の片方に寄せられる処理を検出(簡素化候補)
+    # - musttag                   #3 marshal対象structのtag不足を検出(API/JSON品質向け)
+    # - nestif                    #3 深いifネストを検出(可読性改善の目安)
+    # - paralleltest              #3 t.Parallel未使用を検出(並行テスト方針の徹底向け)
+    # - perfsprint                #3 fmt.Sprintf等をより軽い処理へ置換できる箇所を検出
+    # - reassign                  #3 package変数の再代入を検出(標準出力/エラー等の保護)
+    # - recvcheck                 #3 レシーバー名の不統一を検出(命名規約の維持)
+    # - sloglint                  #3 slogの使い方を検査(構造化ログの品質向上)
+    # - spancheck                 #3 OpenTelemetry spanの終了/エラー記録漏れを検出(計測利用時)
+    # - testifylint               #3 testifyの使い方を検査(利用時のみ有効)
+    # - tparallel                 #3 並列テスト内の不適切なt.Parallel利用を検出
+    # - unparam                   #3 使われない関数引数を検出(公開/テスト都合との調整が必要)
+    # - usestdlibvars             #3 標準ライブラリ定数/変数へ置換できる箇所を検出
+    # - usetesting                #3 os.TempDir等をtestingパッケージ機能へ置換できる箇所を検出
+    # - wrapcheck                 #3 外部パッケージerrorのwrap漏れを検出(運用時の文脈付与)
+
+    # #4 用途限定
+    # - arangolint                #4 ArangoDBクエリ文字列を検査(ArangoDB利用時のみ有効)
+    # - asciicheck                #4 識別子に非ASCII文字が混入していないか検出(国際化コードでは注意)
+    # - decorder                  #4 宣言順序を検査(プロジェクト規約が強い場合向け)
+    # - embeddedstructfieldcheck  #4 埋め込みフィールド名を検査(API設計規約向け)
+    # - exptostd                  #4 x/expから標準ライブラリへ移行可能なAPIを検出(新Go追随向け)
+    # - funcorder                 #4 関数の並び順を検査(厳密なファイル構成規約向け)
+    # - funlen                    #4 長すぎる関数を検出(目安としては有用だが誤検知も多い)
+    # - ginkgolinter              #4 Ginkgo/Gomegaテストの書き方を検査(利用時のみ有効)
+    # - gochecknoglobals          #4 グローバル変数を検出(厳格な副作用管理向け)
+    # - gochecknoinits            #4 init関数を検出(初期化順序の不透明さを避けたい場合)
+    # - godot                     #4 コメント末尾の句点を検査(文体規約向け)
+    # - goheader                  #4 ファイルヘッダーの有無を検査(ライセンス表記統一向け)
+    # - gosmopolitan              #4 i18nを阻害する文字列/時刻/ロケール処理を検出(多言語対応向け)
+    # - grouper                   #4 import/const/var/typeのグルーピングを検査(整形規約向け)
+    # - importas                  #4 import aliasの命名を検査(表記統一向け)
+    # - inamedparam               #4 interfaceメソッド引数名の有無を検査(ドキュメント性向上)
+    # - ireturn                   #4 interfaceを返す関数を検出(設計思想が合う場合のみ)
+    # - lll                       #4 長すぎる行を検出(Goでは自動折り返し運用と相性注意)
+    # - mnd                       #4 マジックナンバーを検出(ノイズが多く設定調整前提)
+    # - nakedret                  #4 長い関数の裸returnを検出(このリポジトリ方針とは要調整)
+    # - nlreturn                  #4 return前の空行を検査(文体規約向け)
+    # - noinlineerr               #4 if err := ... のインライン宣言を検出(文体規約向け)
+    # - nonamedreturns            #4 名前付き戻り値を検出(名前付き戻り値を基本にする方針のため無効)
+    # - prealloc                  #4 事前容量確保できるsliceを検出(性能要件がある箇所向け)
+    # - promlinter                #4 Prometheusメトリクス命名を検査(利用時のみ有効)
+    # - protogetter               #4 protobufフィールド直接参照を検出(利用時のみ有効)
+    # - tagalign                  #4 struct tagの整列を検査(見た目の統一向け)
+    # - tagliatelle               #4 struct tagの命名規約を検査(JSON等のケース統一向け)
+    # - testableexamples          #4 Exampleテストの出力コメント不足を検出(例示テスト向け)
+    # - testpackage               #4 テストを別パッケージに強制(設計思想が合う場合のみ)
+    # - varnamelen                #4 変数名の長さを検査(実態に合う短い変数名を許容する方針のため無効)
+    # - whitespace                #4 if/forなどの前後空行を検査(文体規約向け)
+    # - zerologlint               #4 zerologの使い方を検査(利用時のみ有効)
+  # settings:
+    # gosec:
+    #   excludes:
+    #     - G115
+    # nakedret:
+    #   max-func-lines: 50 # ✨ 15行を超える関数での Naked Return を禁止
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

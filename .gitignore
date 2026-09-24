@@ -36,5 +36,6 @@ server.key
 .cache/*
 .config/*
 bin/air
+bin/golangci-lint
 tmp/build-errors.log
 bin/thermalprinter-go

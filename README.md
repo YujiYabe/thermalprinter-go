@@ -1,5 +1,11 @@
 # thermalprinter-go
 
+## Lint
+
+- 実行: `make lint`
+- インストール: `make install-lint`（`.golangci-lint-version` で固定したバージョンを `./bin` に導入）
+- 設定: `.golangci.yml`
+
 ## 開発用ホットリロード (air)
 - インストール: `go install github.com/air-verse/air@latest`
 - 起動: `air`
